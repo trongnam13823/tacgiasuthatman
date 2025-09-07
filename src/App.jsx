@@ -179,7 +179,7 @@ export default function App() {
             <Input
               value={searchText}
               type="search"
-              placeholder="Tìm bài gì đó"
+              placeholder="Tìm gì đó"
               className="pl-9 pr-2"
               onChange={onSearch}
               onKeyDown={onEnterBlur}
