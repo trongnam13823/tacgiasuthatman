@@ -6,6 +6,7 @@ import {
   SkipForward,
   SkipBack,
   Pause,
+  Search,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import ReactPlayer from "react-player";
@@ -15,6 +16,7 @@ import { Button } from "./components/ui/button";
 import { useScrollToIndex } from "./hooks/useScrollToIndex";
 import Timer from "./components/Timer";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "./components/ui/input";
 
 export default function App() {
   const player = useRef(null);
@@ -38,12 +40,20 @@ export default function App() {
 
   const [seeking, setSeeking] = useState(false);
   const [interacted, setInteracted] = useState(false);
+  const [searchList, setSearchList] = useState([]);
+  const [searchText, setSearchText] = useState("");
 
   useScrollToIndex({ virtuoso, currentIndex, playing, init });
 
   const onPlayAudio = (step, current = currentIndex) => {
     const index = (current + step + audios.length) % audios.length;
     player.current.currentTime = 0;
+
+    if (step === 0 && index === currentIndex) {
+      player.current.currentTime = 0;
+      player.current.play();
+      return;
+    }
 
     setPlaying(true);
     setCurrentIndex(index);
@@ -109,6 +119,35 @@ export default function App() {
     }
   };
 
+  const onSearch = (e) => {
+    const keyword = e.target.value;
+
+    setSearchList(
+      keyword
+        ? audios.filter((a) =>
+            a.title.toLowerCase().includes(keyword.toLowerCase())
+          )
+        : []
+    );
+    setSearchText(keyword);
+  };
+
+  const onEnterBlur = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.target.blur();
+    }
+  };
+
+  const onSelectSearchItem = (url) => {
+    onPlayAudio(
+      0,
+      audios.findIndex((a) => a.url === url)
+    );
+    setSearchText("");
+    setSearchList([]);
+  };
+
   const progress =
     duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0;
 
@@ -135,29 +174,65 @@ export default function App() {
       ) : (
         <div className="w-full flex flex-col gap-2">
           <Timer setPlaying={setPlaying} />
-          <Virtuoso
-            totalCount={audios.length}
-            ref={virtuoso}
-            itemContent={(index) => {
-              return (
-                <div
-                  onClick={() => onPlayAudio(0, index)}
-                  className={`px-4 py-2 cursor-pointer rounded-md ${
-                    index === currentIndex
-                      ? "bg-white/20 font-bold"
-                      : "hover:bg-white/20"
-                  }`}
-                >
-                  {audios[index].title}
-                </div>
-              );
-            }}
-          />
+          <div className="relative">
+            <Search className="absolute top-1/2 -translate-y-1/2 size-6 left-2" />
+            <Input
+              value={searchText}
+              type="search"
+              placeholder="Tìm bài gì đó"
+              className="pl-9 pr-2"
+              onChange={onSearch}
+              onKeyDown={onEnterBlur}
+            />
+          </div>
+
+          <div className="flex-1 relative">
+            <Virtuoso
+              className="scroll-hidden"
+              totalCount={audios.length}
+              ref={virtuoso}
+              itemContent={(index) => {
+                return (
+                  <div
+                    onClick={() => onPlayAudio(0, index)}
+                    className={`px-4 py-2 cursor-pointer rounded-md ${
+                      index === currentIndex
+                        ? "bg-white/20 font-bold"
+                        : "hover:bg-white/20"
+                    }`}
+                  >
+                    {audios[index]?.title}
+                  </div>
+                );
+              }}
+            />
+
+            <div
+              className={`absolute inset-0 bg-neutral-800 rounded-md  ${
+                searchList.length === 0 ? "hidden" : "block"
+              }`}
+            >
+              <Virtuoso
+                className="scroll-hidden"
+                totalCount={searchList.length}
+                itemContent={(index) => {
+                  return (
+                    <div
+                      className={`px-4 py-2 cursor-pointer rounded-md hover:bg-white/20`}
+                      onClick={() => onSelectSearchItem(searchList[index]?.url)}
+                    >
+                      {searchList[index]?.title}
+                    </div>
+                  );
+                }}
+              />
+            </div>
+          </div>
 
           <div className="flex flex-col gap-4 pt-2 border-t border-gray-600 select-none">
             <div className="text-center">
               <h1 className="text-xl font-bold line-clamp-1">
-                {audios[currentIndex].title}
+                {audios[currentIndex]?.title}
               </h1>
               <p>
                 {currentIndex + 1}/{audios.length}
@@ -167,8 +242,8 @@ export default function App() {
             <div className="flex items-center gap-2">
               <span>{formatDuration(duration && currentTime)}</span>
               <Slider
-                className={`w-full h-10 transition-[padding] ${
-                  seeking ? "py-0" : "py-4"
+                className={`w-full h-9 transition-[padding] ${
+                  seeking ? "py-0" : "py-3"
                 }`}
                 style={{
                   transitionDelay: "0.1s",
