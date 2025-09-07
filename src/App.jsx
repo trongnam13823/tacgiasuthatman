@@ -93,8 +93,12 @@ export default function App() {
   }, [currentIndex, audios, playing]);
 
   const onSliderChange = (e) => {
-    setSeeking(true);
-    setCurrentTime(e[0]);
+    if (isFinite(Number(e[0]))) {
+      setSeeking(true);
+      setCurrentTime(e[0]);
+    } else {
+      console.log("111111111111111111111");
+    }
   };
 
   const onSliderCommit = (e) => {
@@ -114,7 +118,6 @@ export default function App() {
         playing={playing}
         src={audios[currentIndex]?.url ?? "abc.mp3"}
         style={{ width: "100%", height: "auto" }}
-        playsInline
         onEnded={onEnded}
         onPlay={onPlay}
         onPause={onPause}
@@ -161,10 +164,10 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-2">
-              <span>{formatDuration(duration === 0 ? 0 : currentTime)}</span>
+              <span>{formatDuration(duration && currentTime)}</span>
               <Slider
                 max={duration === 0 ? Infinity : duration}
-                value={[duration === 0 ? 0 : currentTime]}
+                value={[duration && currentTime]}
                 step={0.01}
                 onValueChange={onSliderChange}
                 onValueCommit={onSliderCommit}
