@@ -96,8 +96,6 @@ export default function App() {
     if (isFinite(Number(e[0]))) {
       setSeeking(true);
       setCurrentTime(e[0]);
-    } else {
-      console.log("111111111111111111111");
     }
   };
 
