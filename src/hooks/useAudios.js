@@ -11,6 +11,7 @@ const api = axios.create({
 const storageKeys = {
   audios: "audios",
   currentIndex: "currentIndex",
+  currentTime: "currentTime",
 };
 
 export default function useAudios(username) {
@@ -21,6 +22,8 @@ export default function useAudios(username) {
   const [init, setInit] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
 
   const shuffleAudios = () => {
     const result = shuffleArray(audios);
@@ -82,8 +85,12 @@ export default function useAudios(username) {
     const cachedCurrentIndex = JSON.parse(
       localStorage.getItem(storageKeys.currentIndex)
     );
+    const cachedCurrentTime = JSON.parse(
+      localStorage.getItem(storageKeys.currentTime)
+    );
 
     setCurrentIndex(cachedCurrentIndex ?? 0);
+    setCurrentTime(cachedCurrentTime ?? 0);
 
     if (cachedAudios) {
       // Nếu có cache thì dùng cache trước
@@ -103,6 +110,12 @@ export default function useAudios(username) {
       localStorage.setItem(storageKeys.currentIndex, Number(currentIndex));
   }, [currentIndex]);
 
+  // Đồng bộ currentTime với localStorage
+  useEffect(() => {
+    if (!init)
+      localStorage.setItem(storageKeys.currentTime, Number(currentTime));
+  }, [currentTime]);
+
   // Trả về dữ liệu và các helper cho component sử dụng
   return {
     init,
@@ -113,6 +126,10 @@ export default function useAudios(username) {
     setCurrentIndex,
     playing,
     setPlaying,
+    currentTime,
+    setCurrentTime,
+    duration,
+    setDuration,
     refetch: fetchaudios,
     shuffleAudios,
   };

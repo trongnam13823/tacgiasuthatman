@@ -3,17 +3,18 @@ import {
   LoaderCircle,
   Shuffle,
   Play,
-  Disc3,
   SkipForward,
   SkipBack,
+  Pause,
 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactPlayer from "react-player";
 import { Virtuoso } from "react-virtuoso";
 import useAudios from "./hooks/useAudios";
 import { Button } from "./components/ui/button";
 import { useScrollToIndex } from "./hooks/useScrollToIndex";
 import Timer from "./components/Timer";
+import { Slider } from "@/components/ui/slider";
 
 export default function App() {
   const player = useRef(null);
@@ -29,34 +30,53 @@ export default function App() {
     setCurrentIndex,
     playing,
     setPlaying,
+    currentTime,
+    setCurrentTime,
+    duration,
+    setDuration,
   } = useAudios("tiktok-tacgiasuthatman");
+
+  const [seeking, setSeeking] = useState(false);
+  const [interacted, setInteracted] = useState(false);
 
   useScrollToIndex({ virtuoso, currentIndex, playing, init });
 
   const onPlayAudio = (step, current = currentIndex) => {
     const index = (current + step + audios.length) % audios.length;
+    player.current.currentTime = 0;
 
     setPlaying(true);
     setCurrentIndex(index);
+    setCurrentTime(0);
+    setDuration(0);
   };
 
   const onToggle = () => setPlaying(!playing);
   const onNext = () => onPlayAudio(+1);
   const onPrev = () => onPlayAudio(-1);
   const onReload = async () => {
+    setCurrentIndex(-1);
     await refetch();
-    setCurrentIndex(0);
-    setPlaying(false);
+    onPlayAudio(0, 0);
   };
   const onShuffle = () => {
     shuffleAudios();
-    setCurrentIndex(0);
     onPlayAudio(0, 0);
   };
 
   const onEnded = () => onNext();
-  const onPlay = () => setPlaying(true);
+  const onPlay = () => {
+    player.current.currentTime = currentTime;
+    setInteracted(true);
+    setPlaying(true);
+  };
   const onPause = () => setPlaying(false);
+  const onTimeUpdate = (e) => {
+    if (!seeking && interacted) {
+      setCurrentTime(e.target.currentTime);
+    }
+  };
+  const onDurationChange = (e) => setDuration(e.target.duration);
 
   useEffect(() => {
     navigator.mediaSession.metadata = new MediaMetadata({
@@ -72,8 +92,36 @@ export default function App() {
     });
   }, [currentIndex, audios, playing]);
 
+  const onSliderChange = (e) => {
+    setSeeking(true);
+    setCurrentTime(e[0]);
+  };
+
+  const onSliderCommit = (e) => {
+    setSeeking(false);
+    setCurrentTime(e[0]);
+
+    if (interacted) {
+      if (playing) player.current.currentTime = currentTime;
+      else setPlaying(true);
+    }
+  };
+
   return (
     <div className="flex h-svh w-svw p-2">
+      <ReactPlayer
+        ref={player}
+        playing={playing}
+        src={audios[currentIndex]?.url ?? "abc.mp3"}
+        style={{ width: "100%", height: "auto" }}
+        playsInline
+        onEnded={onEnded}
+        onPlay={onPlay}
+        onPause={onPause}
+        onTimeUpdate={onTimeUpdate}
+        onDurationChange={onDurationChange}
+      />
+
       {loading ? (
         <div className="space-y-4 m-auto">
           <LoaderCircle className="animate-spin size-10 mx-auto" />
@@ -112,17 +160,17 @@ export default function App() {
               </p>
             </div>
 
-            <ReactPlayer
-              ref={player}
-              playing={playing}
-              src={audios[currentIndex].url}
-              controls
-              style={{ width: "100%", height: "auto" }}
-              playsInline
-              onEnded={onEnded}
-              onPlay={onPlay}
-              onPause={onPause}
-            />
+            <div className="flex items-center gap-2">
+              <span>{formatDuration(duration === 0 ? 0 : currentTime)}</span>
+              <Slider
+                max={duration === 0 ? Infinity : duration}
+                value={[duration === 0 ? 0 : currentTime]}
+                step={0.01}
+                onValueChange={onSliderChange}
+                onValueCommit={onSliderCommit}
+              />
+              <span>{formatDuration(duration)}</span>
+            </div>
 
             <div className="flex gap-2 justify-evenly items-center">
               <Button
@@ -147,9 +195,9 @@ export default function App() {
                 onClick={onToggle}
               >
                 {playing ? (
-                  <Disc3 className="size-8 text-black animate-spin" />
+                  <Pause className="size-8 text-black " />
                 ) : (
-                  <Play className="size-8 text-black animate-pulse" />
+                  <Play className="size-8 text-black " />
                 )}
               </Button>
 
@@ -174,4 +222,17 @@ export default function App() {
       )}
     </div>
   );
+}
+
+function formatDuration(sec) {
+  if (!sec || sec < 0) return "00:00";
+
+  const totalSec = Math.floor(sec);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60)
+    .toString()
+    .padStart(2, "0");
+  const s = (totalSec % 60).toString().padStart(2, "0");
+
+  return h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
 }
