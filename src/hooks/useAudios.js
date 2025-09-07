@@ -47,9 +47,9 @@ export default function useAudios(username) {
           // lọc
           const newItem = {
             title: cleanTitle(f.name), // biến đổi luôn
-            url: `https://archive.org/download/${username}/${encodeURIComponent(
-              f.name
-            )}`,
+            url: `https://${res.data.server}${
+              res.data.dir
+            }/${encodeURIComponent(removeExtension(f.name))}`,
             mtime: f.mtime, // giữ để sắp xếp
           };
 
@@ -150,4 +150,9 @@ function shuffleArray(array) {
     [result[i], result[j]] = [result[j], result[i]]; // hoán đổi
   }
   return result;
+}
+
+function removeExtension(filename) {
+  const index = filename.lastIndexOf(".");
+  return index > 0 ? filename.substring(0, index) : filename;
 }

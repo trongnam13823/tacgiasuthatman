@@ -37,6 +37,7 @@ export default function App() {
   } = useAudios("tiktok-tacgiasuthatman");
 
   const [seeking, setSeeking] = useState(false);
+  const seekingTimeout = useRef(null);
   const [interacted, setInteracted] = useState(false);
 
   useScrollToIndex({ virtuoso, currentIndex, playing, init });
@@ -94,7 +95,11 @@ export default function App() {
 
   const onSliderChange = (e) => {
     if (isFinite(Number(e[0]))) {
-      setSeeking(true);
+      clearTimeout(seekingTimeout.current);
+      seekingTimeout.current = setTimeout(() => {
+        setSeeking(true);
+      }, 50);
+
       setCurrentTime(e[0]);
     }
   };
@@ -103,18 +108,23 @@ export default function App() {
     setSeeking(false);
     setCurrentTime(e[0]);
 
+    clearTimeout(seekingTimeout.current);
+
     if (interacted) {
       if (playing) player.current.currentTime = currentTime;
       else setPlaying(true);
     }
   };
 
+  const progress =
+    duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0;
+
   return (
     <div className="flex h-svh w-svw p-2">
       <ReactPlayer
         ref={player}
         playing={playing}
-        src={audios[currentIndex]?.url ?? "abc.mp3"}
+        src={`${audios[currentIndex]?.url}.mp3`}
         style={{ width: "100%", height: "auto" }}
         onEnded={onEnded}
         onPlay={onPlay}
@@ -151,7 +161,7 @@ export default function App() {
             }}
           />
 
-          <div className="flex flex-col gap-4 pt-2 border-t border-gray-600">
+          <div className="flex flex-col gap-4 pt-2 border-t border-gray-600 select-none">
             <div className="text-center">
               <h1 className="text-xl font-bold line-clamp-1">
                 {audios[currentIndex].title}
@@ -164,6 +174,25 @@ export default function App() {
             <div className="flex items-center gap-2">
               <span>{formatDuration(duration && currentTime)}</span>
               <Slider
+                className={`w-full h-8 transition-[padding] ${
+                  seeking ? "py-0" : "py-2"
+                }`}
+                classNameThumb={"hidden"}
+                classNameRange={"hidden"}
+                classNameTrack={"pointer-events-none"}
+                styleTrack={{
+                  height: "100%",
+                  background: `
+                    url('${audios[currentIndex]?.url}.png') center/cover no-repeat,
+                    linear-gradient(
+                      to right,
+                      var(--primary) 0%,
+                      var(--primary) ${progress}%,
+                      var(--muted) ${progress}%,
+                      var(--muted) 100%
+                    )
+                  `,
+                }}
                 max={duration === 0 ? Infinity : duration}
                 value={[duration && currentTime]}
                 step={0.01}
