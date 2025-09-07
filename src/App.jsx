@@ -122,13 +122,19 @@ export default function App() {
   const onSearch = (e) => {
     const keyword = e.target.value;
 
-    setSearchList(
-      keyword
-        ? audios.filter((a) =>
-            a.title.toLowerCase().includes(keyword.toLowerCase())
-          )
-        : []
-    );
+    if (keyword) {
+      setSearchList(
+        audios.reduce((acc, a, index) => {
+          if (a.title.toLowerCase().includes(keyword.toLowerCase())) {
+            acc.push({ ...a, originalIndex: index });
+          }
+          return acc;
+        }, [])
+      );
+    } else {
+      setSearchList([]);
+    }
+
     setSearchText(keyword);
   };
 
@@ -139,11 +145,8 @@ export default function App() {
     }
   };
 
-  const onSelectSearchItem = (url) => {
-    onPlayAudio(
-      0,
-      audios.findIndex((a) => a.url === url)
-    );
+  const onSelectSearchItem = (index) => {
+    onPlayAudio(0, index);
     setSearchText("");
     setSearchList([]);
   };
@@ -219,7 +222,9 @@ export default function App() {
                   return (
                     <div
                       className={`px-4 py-2 cursor-pointer rounded-md hover:bg-white/20`}
-                      onClick={() => onSelectSearchItem(searchList[index]?.url)}
+                      onClick={() =>
+                        onSelectSearchItem(searchList[index]?.originalIndex)
+                      }
                     >
                       {searchList[index]?.title}
                     </div>
