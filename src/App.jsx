@@ -37,7 +37,6 @@ export default function App() {
   } = useAudios("tiktok-tacgiasuthatman");
 
   const [seeking, setSeeking] = useState(false);
-  const seekingTimeout = useRef(null);
   const [interacted, setInteracted] = useState(false);
 
   useScrollToIndex({ virtuoso, currentIndex, playing, init });
@@ -95,11 +94,7 @@ export default function App() {
 
   const onSliderChange = (e) => {
     if (isFinite(Number(e[0]))) {
-      clearTimeout(seekingTimeout.current);
-      seekingTimeout.current = setTimeout(() => {
-        setSeeking(true);
-      }, 50);
-
+      setSeeking(true);
       setCurrentTime(e[0]);
     }
   };
@@ -107,8 +102,6 @@ export default function App() {
   const onSliderCommit = (e) => {
     setSeeking(false);
     setCurrentTime(e[0]);
-
-    clearTimeout(seekingTimeout.current);
 
     if (interacted) {
       if (playing) player.current.currentTime = currentTime;
@@ -174,9 +167,13 @@ export default function App() {
             <div className="flex items-center gap-2">
               <span>{formatDuration(duration && currentTime)}</span>
               <Slider
-                className={`w-full h-8 transition-[padding] ${
-                  seeking ? "py-0" : "py-2"
+                className={`w-full h-10 transition-[padding] ${
+                  seeking ? "py-0" : "py-4"
                 }`}
+                style={{
+                  transitionDelay: "0.1s",
+                  transitionDuration: "0.2s",
+                }}
                 classNameThumb={"hidden"}
                 classNameRange={"hidden"}
                 classNameTrack={"pointer-events-none"}
